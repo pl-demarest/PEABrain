@@ -17,7 +17,7 @@ addpath(genpath(cd))
 %within that region.
 
 
-out = singleRegionExtractor('BJH042');
+out = singleRegionExtractor('BJH030');
 
 %%
 

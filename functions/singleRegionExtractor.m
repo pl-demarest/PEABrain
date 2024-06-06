@@ -4,13 +4,13 @@ function [out] = singleRegionExtractor(subject)
 load('listHip.mat');
 load('listCort.mat');
 load('listAmyg.mat');
-list = [listCort,listHip,listAmyg];
+list = [listCort',listHip,listAmyg];
 IDX = listdlg('PromptString',{'Select brain regions to visualize'},'ListString',list);
 structures = list(IDX);
 %% create separate indexes for cortex, hippocampus, and other
 
 %load Data Files
-cortex = load([subject '_MNIBrain.mat']);
+cortex = load([subject '_APARC2009_MNIBrain.mat']);
 cortexList = structures(ismember(structures,listCort));
 cortexOther = setdiff(listCort,structures);
 
@@ -30,12 +30,14 @@ if ~isempty(cortexList)
     for s = 1:length(cortexList)
         %initialize index for region
         curStructure = cortexList(s);
+        structName = formatForFieldname(curStructure);
         curRegionIDX = find(strcmpi({cortex.annotation.AnnotationLabel.Name},curStructure));
         ID = cortex.annotation.AnnotationLabel(curRegionIDX).Identifier;
         idx = find(cortex.annotation.Annotation == ID);
-        [out.regions.(curStructure{:}).vert, out.regions.(curStructure{:}).tri] = extractSurface(idx,cortex.cortex.vert,cortex.cortex.tri);
-        eIDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), curStructure)), cortex.electrodeDefinition.Label(:));
-        out.regions.(curStructure{:}).electrodes = cortex.tala.electrodes(eIDX,:);
+        [out.regions.(structName{:}).vert, out.regions.(structName{:}).tri] = extractSurface(idx,cortex.cortex.vert,cortex.cortex.tri);
+        eLabels = cellfun(@(x) x{1}, cortex.electrodeDefinition.Label, 'UniformOutput', false);
+        eIDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), curStructure)), eLabels(:));
+        out.regions.(structName{:}).electrodes = cortex.tala.electrodes(eIDX,:);
     end
 
 end
@@ -46,7 +48,8 @@ if ~isempty(cortexOther)
     idx = ismember(cortex.annotation.Annotation,ID);
     idx = find(idx == 1);
     [out.regions.cortexOther.vert, out.regions.cortexOther.tri] = extractSurface(idx,cortex.cortex.vert,cortex.cortex.tri);
-    eIDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), cortexOther)), cortex.electrodeDefinition.Label(:));
+    eLabels = cellfun(@(x) x{1}, cortex.electrodeDefinition.Label, 'UniformOutput', false);
+    eIDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), cortexOther)), eLabels(:));
     out.regions.cortexOther.electrodes = cortex.tala.electrodes(eIDX,:);
 end
 
@@ -55,6 +58,7 @@ if ~isempty(amygList)
     for s = 1:length(amygList)
         %initialize index for region
         curStructure = amygList(s);
+        structName = formatForFieldname(curStructure);
         curRegionIDX = find(strcmpi({rHip.annotation.AnnotationLabel.Name},curStructure));
         ID = rHip.annotation.AnnotationLabel(curRegionIDX).Identifier;
 
@@ -66,11 +70,12 @@ if ~isempty(amygList)
 
         lT = lT + length(rP); %adjust for length of first point set
 
-        out.regions.(curStructure{:}).vert = [rP;lP];
-        out.regions.(curStructure{:}).tri = [rT;lT];
+        out.regions.(structName{:}).vert = [rP;lP];
+        out.regions.(structName{:}).tri = [rT;lT];
 
-        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), curStructure)), rHip.electrodeDefinition.Label(:));
-        out.regions.(curStructure{:}).electrodes = cortex.tala.electrodes(find(IDX),:);
+        eLabels = cellfun(@(x) x{1}, rHip.electrodeDefinition.Label, 'UniformOutput', false);
+        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), curStructure)), eLabels(:));
+        out.regions.(structName{:}).electrodes = cortex.tala.electrodes(find(IDX),:);
     end
 
 end
@@ -92,8 +97,9 @@ if ~isempty(amygOther)
 
         out.regions.amygOther.vert = [rP;lP];
         out.regions.amygOther.tri = [rT;lT];
-
-        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), amygOther)), rHip.electrodeDefinition.Label(:));
+        
+        eLabels = cellfun(@(x) x{1}, rHip.electrodeDefinition.Label, 'UniformOutput', false);
+        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), amygOther)), eLabels(:));
         out.regions.amygOther.electrodes = rHip.tala.electrodes(find(IDX),:);
 
 
@@ -104,6 +110,7 @@ if ~isempty(hipList)
     for s = 1:length(hipList)
         %initialize index for region
         curStructure = hipList(s);
+        structName = formatForFieldname(curStructure);
         curRegionIDX = find(strcmpi({rHip.annotation.AnnotationLabel.Name},curStructure));
         ID = rHip.annotation.AnnotationLabel(curRegionIDX).Identifier;
 
@@ -115,11 +122,11 @@ if ~isempty(hipList)
 
         lT = lT + length(rP); %adjust for length of first point set
 
-        out.regions.(curStructure{:}).vert = [rP;lP];
-        out.regions.(curStructure{:}).tri = [rT;lT];
-
-        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), curStructure)), rHip.electrodeDefinition.Label(:));
-        out.regions.(curStructure{:}).electrodes = cortex.tala.electrodes(find(IDX),:);
+        out.regions.(structName{:}).vert = [rP;lP];
+        out.regions.(structName{:}).tri = [rT;lT];
+        eLabels = cellfun(@(x) x{1}, rHip.electrodeDefinition.Label, 'UniformOutput', false);
+        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), curStructure)), eLabels(:));
+        out.regions.(structName{:}).electrodes = cortex.tala.electrodes(find(IDX),:);
     end
 
 end
@@ -141,8 +148,8 @@ if ~isempty(hipOther)
 
         out.regions.hipOther.vert = [rP;lP];
         out.regions.hipOther.tri = [rT;lT];
-
-        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), hipOther)), rHip.electrodeDefinition.Label(:));
+        eLabels = cellfun(@(x) x{1}, rHip.electrodeDefinition.Label, 'UniformOutput', false);
+        IDX = cellfun(@(x) any(cellfun(@(y) contains(x, y), hipOther)), eLabels(:));
         out.regions.hipOther.electrodes = cortex.tala.electrodes(find(IDX),:);
 
 end
